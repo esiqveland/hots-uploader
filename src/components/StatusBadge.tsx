@@ -3,6 +3,8 @@ import * as Gtk from "@gtkx/gi/gtk";
 import { AdwSpinner } from "@gtkx/jsx/adw";
 import { GtkBox, GtkLabel } from "@gtkx/jsx/gtk";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
+import { useNow } from "../hooks/use-now.js";
+import { formatRelativeTime } from "../lib/format.js";
 
 /**
  * Generated once and shared by the React list and the history dialog's
@@ -38,6 +40,9 @@ const OUTCOME_VARIANTS = {
     win: variant("@success_color"),
     loss: variant("@error_color"),
 } as const;
+
+/** Neutral, since when a match was played is not a status worth colour-coding. */
+export const PLAYED_AT_CLASSES = [badge, variant("@dim_label_color")];
 
 export const outcomeText = (outcome: "win" | "loss"): string =>
     outcome === "win" ? "Victory" : "Defeat";
@@ -107,3 +112,16 @@ export const OutcomeBadge = ({ outcome }: { outcome: "win" | "loss" }) => (
         valign={Gtk.Align.CENTER}
     />
 );
+
+/** How long ago the match was played, shown only once the replay has been read. */
+export const PlayedAtBadge = ({ playedAt }: { playedAt: string }) => {
+    // Refreshed every minute so a row doesn't sit at "1 minute ago" for an hour.
+    const now = useNow();
+    return (
+        <GtkLabel
+            label={formatRelativeTime(playedAt, now)}
+            cssClasses={PLAYED_AT_CLASSES}
+            valign={Gtk.Align.CENTER}
+        />
+    );
+};

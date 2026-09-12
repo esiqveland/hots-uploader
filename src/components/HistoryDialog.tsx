@@ -16,7 +16,7 @@ import {
     GtkStringList,
 } from "@gtkx/jsx/gtk";
 import { useParentWindow } from "@gtkx/react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
 import { HeroStatsList } from "./HeroStatsList.js";
 import { groupBySeason, type HistoryRow } from "../lib/history-sections.js";
@@ -34,8 +34,10 @@ import {
     badgeText,
     outcomeClasses,
     outcomeText,
+    PLAYED_AT_CLASSES,
     showsStatusBadge,
 } from "./StatusBadge.js";
+import { formatRelativeTime } from "../lib/format.js";
 
 /**
  * The widgets of one recycled row: a season header and a replay row, one of
@@ -49,10 +51,13 @@ interface RowWidgets {
     badge: Gtk.Box;
     badgeLabel: Gtk.Label;
     badgeSpinner: Adw.Spinner;
+    playedAt: Gtk.Label;
     outcome: Gtk.Label;
     link: Gtk.Button;
     /** The match the link currently points at; rewritten on every bind. */
     replayId?: number;
+    /** The timestamp `playedAt` currently renders; re-read every minute to refresh it. */
+    playedAtIso?: string;
 }
 
 export interface HistoryDialogProps {
@@ -89,6 +94,20 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
     onOpenMatchRef.current = onOpenMatch;
 
     const rowWidgets = useMemo(() => new WeakMap<Gtk.ListItem, RowWidgets>(), []);
+    // WeakMap isn't iterable, so bound rows are tracked here too, purely to
+    // refresh their playedAt label on the timer below.
+    const boundRows = useMemo(() => new Set<RowWidgets>(), []);
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            for (const state of boundRows) {
+                if (state.playedAtIso !== undefined) {
+                    state.playedAt.setLabel(formatRelativeTime(state.playedAtIso));
+                }
+            }
+        }, 60_000);
+        return () => clearInterval(id);
+    }, [boundRows]);
 
     // Season headers are rows too, so the list is never re-sorted to group
     // them; see groupBySeason.
@@ -132,6 +151,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
         const badgeLabel = new Gtk.Label();
         badge.append(badgeSpinner);
         badge.append(badgeLabel);
+        const playedAt = new Gtk.Label({ valign: Gtk.Align.CENTER, cssClasses: PLAYED_AT_CLASSES });
         const outcome = new Gtk.Label({ valign: Gtk.Align.CENTER });
 
         // Built once and hidden per row, since a recycled row may or may not have
@@ -162,6 +182,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
         // Upload state sits left of the result, and only when it has something
         // to say.
         row.append(badge);
+        row.append(playedAt);
         row.append(outcome);
         row.append(link);
 
@@ -177,6 +198,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
             badge,
             badgeLabel,
             badgeSpinner,
+            playedAt,
             outcome,
             link,
         };
@@ -189,6 +211,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
         });
 
         rowWidgets.set(listItem, state);
+        boundRows.add(state);
         listItem.setChild(container);
     };
 
@@ -229,6 +252,12 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
             state.badgeSpinner.setVisible(entry.status === "uploading");
         }
 
+        state.playedAtIso = entry.playedAt;
+        state.playedAt.setVisible(entry.playedAt !== undefined);
+        if (entry.playedAt !== undefined) {
+            state.playedAt.setLabel(formatRelativeTime(entry.playedAt));
+        }
+
         state.outcome.setVisible(entry.outcome !== undefined);
         if (entry.outcome !== undefined) {
             state.outcome.setLabel(outcomeText(entry.outcome));
@@ -245,7 +274,12 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
     };
 
     const teardown = (object: object) => {
-        rowWidgets.delete(object as Gtk.ListItem);
+        const listItem = object as Gtk.ListItem;
+        const state = rowWidgets.get(listItem);
+        if (state !== undefined) {
+            boundRows.delete(state);
+        }
+        rowWidgets.delete(listItem);
     };
 
     return (

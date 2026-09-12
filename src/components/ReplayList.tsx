@@ -3,7 +3,7 @@ import { AdwActionRow, AdwButtonContent } from "@gtkx/jsx/adw";
 import { GtkBox, GtkButton, GtkLabel, GtkListBox, GtkScrolledWindow } from "@gtkx/jsx/gtk";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
 import { RecordSummary } from "./RecordSummary.js";
-import { OutcomeBadge, showsStatusBadge, StatusBadge } from "./StatusBadge.js";
+import { OutcomeBadge, PlayedAtBadge, showsStatusBadge, StatusBadge } from "./StatusBadge.js";
 import { formatIsoDateTime } from "../lib/format.js";
 
 /** Why Heroes Profile turned a replay down, in words rather than an API code. */
@@ -59,6 +59,7 @@ const RowSuffix = ({
     return (
         <GtkBox orientation={Gtk.Orientation.HORIZONTAL} spacing={8} valign={Gtk.Align.CENTER}>
             {showsStatusBadge(entry.status) && <StatusBadge entry={entry} />}
+            {entry.playedAt !== undefined && <PlayedAtBadge playedAt={entry.playedAt} />}
             {entry.outcome !== undefined && <OutcomeBadge outcome={entry.outcome} />}
             <GtkButton
                 cssClasses={MATCH_BUTTON_CLASSES}
