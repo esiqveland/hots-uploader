@@ -275,7 +275,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
                 }
             >
                 <AdwViewStack ref={setStack}>
-                    <AdwViewStackPage name="history" title="History">
+                    <AdwViewStackPage name="history" title="History" iconName="view-list-symbolic">
                         <GtkScrolledWindow
                             hscrollbarPolicy={Gtk.PolicyType.NEVER}
                             vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
@@ -298,7 +298,7 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
                             />
                         </GtkScrolledWindow>
                     </AdwViewStackPage>
-                    <AdwViewStackPage name="heroes" title="By Hero">
+                    <AdwViewStackPage name="heroes" title="By Hero" iconName="avatar-default-symbolic">
                         <HeroStatsList entries={entries} />
                     </AdwViewStackPage>
                 </AdwViewStack>

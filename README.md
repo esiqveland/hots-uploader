@@ -9,6 +9,12 @@ It is a port of [esiqveland/replayuploader](https://github.com/esiqveland/replay
 whose working parts lived in a headless Go CLI; the GTK UI there was never
 finished.
 
+## Screenshots
+
+| Main window | Full history | Per-hero stats |
+| --- | --- | --- |
+| ![Main window](screenshots/main-window.png) | ![Full history](screenshots/full-history.png) | ![Per-hero stats](screenshots/hero-stats.png) |
+
 ## Running
 
 ```bash
