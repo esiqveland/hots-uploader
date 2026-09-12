@@ -1,7 +1,7 @@
 import { defineConfig } from "@gtkx/config";
 
 export default defineConfig({
-    applicationId: "com.mygtkxapp.app",
+    applicationId: "com.github.esiqveland.hotsreplayuploader",
     applicationIcon: "data/icons",
     future: {
         v2ByteArrays: true,
@@ -13,12 +13,14 @@ export default defineConfig({
         v2TreeShaking: true,
     },
     deploy: {
-        name: "My Gtkx App",
-        summary: "A GTK4 application built with GTKX",
+        name: "HotS Replay Uploader",
+        summary: "Automatically upload Heroes of the Storm replays to Heroes Profile",
         description: [
-            "My Gtkx App is a GTK4 and Adwaita application built with GTKX, which renders native GObject "
-            + "widgets from React. Replace this paragraph with a description of what your application does.",
+            "Watches your Heroes of the Storm replay folder and uploads every new match to "
+            + "Heroes Profile as soon as the game finishes writing it.",
+            "Replays are deduplicated by content, so restarting the app or re-scanning a folder "
+            + "never uploads the same match twice, and failed uploads are retried with backoff.",
         ],
-        categories: ["Utility"],
+        categories: ["Game", "Utility"],
     },
 });

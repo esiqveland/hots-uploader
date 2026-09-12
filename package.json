@@ -1,8 +1,8 @@
 {
-    "name": "my-gtkx-app",
+    "name": "hotsreplayuploader",
     "version": "0.0.1",
     "private": true,
-    "description": "A GTK4 application built with GTKX",
+    "description": "Automatically upload Heroes of the Storm replays to Heroes Profile",
     "license": "MIT",
     "author": "Eivind Siqveland Larsen <eivind@siqve.land>",
     "type": "module",

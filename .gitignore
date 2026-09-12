@@ -3,3 +3,9 @@ dist/
 build/
 .gtkx/
 *.log
+
+# Personal dev launcher with local replay paths; not part of the project.
+run.sh
+
+# Local, per-machine tool settings.
+.claude/settings.local.json
