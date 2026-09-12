@@ -11,6 +11,11 @@ export interface Config {
     /** Begin watching as soon as the app starts. */
     autoStart: boolean;
     /**
+     * Your Heroes of the Storm player (toon) id, set by hand when it cannot be
+     * detected. Undefined means "work it out automatically".
+     */
+    toonId?: number;
+    /**
      * Keep looking up Heroes Profile match links for the whole history in the
      * background. The visible rows are always linked; this covers the rest, which
      * is hundreds of requests, so it is opt-in.

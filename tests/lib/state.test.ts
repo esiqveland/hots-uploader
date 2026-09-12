@@ -20,6 +20,26 @@ describe("StateFile", () => {
         expect(state.states.map((s) => s.sha256)).toEqual(["c", "b", "a"]);
     });
 
+    it("sorts a newly seen but backdated replay by its own date, not by discovery order", () => {
+        const state = StateFile.empty("/tmp/unused.json");
+        state.add(
+            entry("recent", {
+                ts: "2026-09-12T00:00:00.000Z",
+                details: { map: "Sky Temple", players: [], playedAt: "2026-09-12T00:00:00.000Z" },
+            }),
+        );
+        // Seen just now, but its own match date is years old — e.g. a restored
+        // backup, or a replay copied in from an old archive.
+        state.add(
+            entry("old", {
+                ts: "2020-05-08T20:44:06.000Z",
+                details: { map: "Tomb", players: [], playedAt: "2020-05-08T20:44:06.000Z" },
+            }),
+        );
+
+        expect(state.states.map((s) => s.sha256)).toEqual(["recent", "old"]);
+    });
+
     it("replaces a matching sha in place rather than adding a duplicate", () => {
         const state = StateFile.empty("/tmp/unused.json");
         state.add(entry("a"));

@@ -1,8 +1,9 @@
 import * as Gtk from "@gtkx/gi/gtk";
-import { AdwActionRow, AdwButtonContent, AdwSpinner } from "@gtkx/jsx/adw";
+import { AdwActionRow, AdwButtonContent } from "@gtkx/jsx/adw";
 import { GtkBox, GtkButton, GtkLabel, GtkListBox, GtkScrolledWindow } from "@gtkx/jsx/gtk";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
-import { StatusBadge } from "./StatusBadge.js";
+import { RecordSummary } from "./RecordSummary.js";
+import { OutcomeBadge, showsStatusBadge, StatusBadge } from "./StatusBadge.js";
 import { formatIsoDateTime } from "../lib/format.js";
 
 /** Why Heroes Profile turned a replay down, in words rather than an API code. */
@@ -15,6 +16,12 @@ const REJECTION_REASONS: Record<string, string> = {
     UnknownCode: "Rejected by Heroes Profile",
 };
 
+/** What a row is called: the map when the replay has been read, else its filename. */
+export const titleFor = (entry: ReplayEntry): string => entry.map ?? entry.name;
+
+const matchParts = (entry: ReplayEntry): string[] =>
+    entry.hero === undefined ? [] : [entry.hero];
+
 export const subtitleFor = (entry: ReplayEntry): string => {
     if (entry.status === "uploading") {
         return "Uploading…";
@@ -25,7 +32,7 @@ export const subtitleFor = (entry: ReplayEntry): string => {
     if (entry.status === "failed") {
         return entry.detail ?? "Upload failed";
     }
-    return `Uploaded ${formatIsoDateTime(entry.at)}`;
+    return [...matchParts(entry), formatIsoDateTime(entry.at)].join(" · ");
 };
 
 /** Shipped by libadwaita itself; plain "external-link-symbolic" does not exist. */
@@ -51,7 +58,8 @@ const RowSuffix = ({
     const replayId = entry.replayId;
     return (
         <GtkBox orientation={Gtk.Orientation.HORIZONTAL} spacing={8} valign={Gtk.Align.CENTER}>
-            {entry.status === "uploading" ? <AdwSpinner /> : <StatusBadge entry={entry} />}
+            {showsStatusBadge(entry.status) && <StatusBadge entry={entry} />}
+            {entry.outcome !== undefined && <OutcomeBadge outcome={entry.outcome} />}
             <GtkButton
                 cssClasses={MATCH_BUTTON_CLASSES}
                 sensitive={replayId !== undefined}
@@ -83,6 +91,7 @@ export const ReplayList = ({ entries, onShowHistory, onOpenMatch }: ReplayListPr
 
     return (
         <GtkBox orientation={Gtk.Orientation.VERTICAL} vexpand={true}>
+            <RecordSummary entries={entries} />
             <GtkScrolledWindow
                 hscrollbarPolicy={Gtk.PolicyType.NEVER}
                 vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
@@ -100,7 +109,7 @@ export const ReplayList = ({ entries, onShowHistory, onOpenMatch }: ReplayListPr
                     {visible.map((entry) => (
                         <AdwActionRow
                             key={entry.name}
-                            title={entry.name}
+                            title={titleFor(entry)}
                             subtitle={subtitleFor(entry)}
                             subtitleLines={1}
                             suffix={<RowSuffix entry={entry} onOpenMatch={onOpenMatch} />}

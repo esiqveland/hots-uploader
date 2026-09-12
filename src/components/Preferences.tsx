@@ -2,6 +2,7 @@ import * as Gtk from "@gtkx/gi/gtk";
 import {
     AdwActionRow,
     AdwButtonRow,
+    AdwEntryRow,
     AdwPreferencesDialog,
     AdwPreferencesGroup,
     AdwPreferencesPage,
@@ -20,7 +21,23 @@ export interface PreferencesProps {
     /** How many history entries have no Heroes Profile match id yet. */
     unlinkedCount: number;
     backfill: { done: number; total: number; linked: number } | null;
+    /** Which player id is in use, and whether it had to be detected. */
+    toon: { toonId?: number; source: "configured" | "path" | "replays" | "none" };
 }
+
+/** Says whether we worked the player out, and what to do when we did not. */
+const detectionSubtitle = (toon: PreferencesProps["toon"]): string => {
+    switch (toon.source) {
+        case "configured":
+            return `Using the ID you entered: ${toon.toonId}`;
+        case "path":
+            return `Detected from your replay folder: ${toon.toonId}`;
+        case "replays":
+            return `Detected from your replays: ${toon.toonId}`;
+        default:
+            return "Could not detect it — enter your player ID above to see your hero and result";
+    }
+};
 
 export const Preferences = ({
     config,
@@ -28,6 +45,7 @@ export const Preferences = ({
     onClose,
     unlinkedCount,
     backfill,
+    toon,
 }: PreferencesProps) => {
     const window = useParentWindow();
 
@@ -114,8 +132,40 @@ export const Preferences = ({
                 </AdwPreferencesGroup>
 
                 <AdwPreferencesGroup
+                    title="Your Player"
+                    description={
+                        "Used to work out which player in a replay is you, so the list can show "
+                        + "your hero and whether you won. It is the last number in your replay "
+                        + "folder — in Accounts/1564242/2-Hero-1-13481373/Replays/Multiplayer "
+                        + "it is 13481373."
+                    }
+                >
+                    <AdwEntryRow
+                        title="Your player ID"
+                        text={config.toonId === undefined ? "" : String(config.toonId)}
+                        inputPurpose={Gtk.InputPurpose.DIGITS}
+                        onChanged={(self) => {
+                            const typed = self.text.trim();
+                            // Empty means "go back to detecting it", not "no id".
+                            const next = typed === "" ? undefined : Number(typed);
+                            if (next !== undefined && !Number.isSafeInteger(next)) {
+                                return;
+                            }
+                            if (next !== config.toonId) {
+                                onChange({ toonId: next });
+                            }
+                        }}
+                    />
+                    <AdwActionRow
+                        title="Detection"
+                        subtitle={detectionSubtitle(toon)}
+                        subtitleLines={2}
+                    />
+                </AdwPreferencesGroup>
+
+                <AdwPreferencesGroup
                     title="Match Links"
-                    description="The replays shown in the window are linked to their Heroes Profile match automatically. Linking the rest of your history means re-sending every archived replay, one per second, so it is off by default. Progress is kept, so this can be switched off and on again."
+                    description="The replays shown in the window are linked to their Heroes Profile match automatically. Linking the rest of your history means re-sending every archived replay, one per second, so it is off by default. Progress is kept, so this can be switched off and on again. Replays played more than 12 months ago are never sent, to save load on Heroes Profile — their map and heroes are still read locally, just not their match link."
                 >
                     <AdwSwitchRow
                         title="Link my whole history"
@@ -123,7 +173,7 @@ export const Preferences = ({
                             backfill !== null
                                 ? `Linking ${backfill.done} of ${backfill.total}, ${backfill.linked} found`
                                 : unlinkedCount === 0
-                                  ? "Everything is linked"
+                                  ? "Nothing left to link"
                                   : `${unlinkedCount} replays still unlinked`
                         }
                         active={config.linkAllReplays}

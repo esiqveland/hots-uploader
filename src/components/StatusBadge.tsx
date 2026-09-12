@@ -1,6 +1,7 @@
 import { css } from "@gtkx/css";
 import * as Gtk from "@gtkx/gi/gtk";
-import { GtkLabel } from "@gtkx/jsx/gtk";
+import { AdwSpinner } from "@gtkx/jsx/adw";
+import { GtkBox, GtkLabel } from "@gtkx/jsx/gtk";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
 
 /**
@@ -33,6 +34,19 @@ const VARIANTS: Record<ReplayEntry["status"], string> = {
     failed: variant("@error_color"),
 };
 
+const OUTCOME_VARIANTS = {
+    win: variant("@success_color"),
+    loss: variant("@error_color"),
+} as const;
+
+export const outcomeText = (outcome: "win" | "loss"): string =>
+    outcome === "win" ? "Victory" : "Defeat";
+
+export const outcomeClasses = (outcome: "win" | "loss"): string[] => [
+    badge,
+    OUTCOME_VARIANTS[outcome],
+];
+
 /** Short enough to sit in a row; the subtitle carries the detail. */
 const REJECTION_LABELS: Record<string, string> = {
     AiDetected: "Against AI",
@@ -57,10 +71,39 @@ export const badgeText = (entry: ReplayEntry): string => {
 
 export const badgeClasses = (status: ReplayEntry["status"]): string[] => [badge, VARIANTS[status]];
 
+/**
+ * A successful upload is the overwhelmingly common case, so it says nothing worth
+ * a badge. Only work in flight and outcomes that need attention get one.
+ */
+export const showsStatusBadge = (status: ReplayEntry["status"]): boolean =>
+    status !== "uploaded";
+
+/** Sized to sit on the badge's cap height rather than tower over the text. */
+export const BADGE_SPINNER_PX = 12;
+
 export const StatusBadge = ({ entry }: { entry: ReplayEntry }) => (
-    <GtkLabel
-        label={badgeText(entry)}
+    <GtkBox
+        orientation={Gtk.Orientation.HORIZONTAL}
+        spacing={6}
         cssClasses={badgeClasses(entry.status)}
+        valign={Gtk.Align.CENTER}
+    >
+        {entry.status === "uploading" && (
+            <AdwSpinner
+                widthRequest={BADGE_SPINNER_PX}
+                heightRequest={BADGE_SPINNER_PX}
+                valign={Gtk.Align.CENTER}
+            />
+        )}
+        <GtkLabel label={badgeText(entry)} />
+    </GtkBox>
+);
+
+/** Whether you won, shown only when the player id resolved. */
+export const OutcomeBadge = ({ outcome }: { outcome: "win" | "loss" }) => (
+    <GtkLabel
+        label={outcomeText(outcome)}
+        cssClasses={outcomeClasses(outcome)}
         valign={Gtk.Align.CENTER}
     />
 );

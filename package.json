@@ -20,6 +20,7 @@
         "@gtkx/css": "^1.6.0",
         "@gtkx/react": "^1.6.0",
         "@gtkx/runtime": "^1.6.0",
+        "mpq-file": "^1.0.3",
         "react": "^19.2.8"
     },
     "devDependencies": {

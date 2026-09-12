@@ -55,9 +55,16 @@ One folder is watched at a time, non-recursively.
 - **Retries** a failed upload with linear backoff, capped at 15 seconds.
 - **Archives** each finished replay into `<watch folder>/archived/`, so later
   scans have far less to re-hash. Files that fail to upload stay put.
+- **Reads the match** out of each replay — map, every player's hero and the
+  result — with a small self-describing decoder and no protocol tables. See
+  *Reading replays* below.
 
 The header bar has buttons to start and stop watching, rescan the folder, open
 the watched folder in your file manager, and open Preferences.
+
+Each row shows the map, the hero you played and whether you won, read out of the
+replay file itself. Above the list, a summary gives your wins, losses and win
+rate over the last 100 games with a known result.
 
 The main window lists the ten most recent replays; **Show Full History** opens the
 whole history in a modal window. That list is virtualized, so a history of
@@ -153,3 +160,24 @@ starts a headless `sway` compositor, so `sway` must be installed; without it,
 - Replays are validated as MPQ archives rather than just checked for being at
   least 2 bytes long.
 - Config lives in XDG directories instead of the working directory.
+
+## Reading replays
+
+`replay.details` inside a `.StormReplay` uses Blizzard's *versioned* format, which
+is self-describing: every value carries a tag byte, and an unknown field can be
+skipped by walking tags alone. So `src/lib/versioned-decoder.ts` reads it with no
+per-build protocol tables at all, and `src/lib/replay-details.ts` maps the tags to
+the map name, and each player's hero, team and result.
+
+Two things are deliberately **not** read:
+
+- **Player names.** The game anonymises them in the replay, so they are
+  meaningless strings. Toon ids are real, which is how your own games are found.
+- **Anything in `replay.initdata`.** That file uses the *bit-packed* format, which
+  carries no tags: field order and widths come entirely from a per-build typeinfo
+  table. Without one it cannot be read, which is why the Heroes Profile
+  fingerprint cannot be computed locally — the server computes it for us anyway.
+
+Which player is you comes from your toon id: the *Your player ID* setting when
+given, otherwise the id in the replay folder path, otherwise the player who
+appears in the most replays.

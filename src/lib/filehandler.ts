@@ -1,6 +1,7 @@
 import { access, mkdir, readFile, rename, stat } from "node:fs/promises";
 import { basename, extname, join } from "node:path";
 import { sha512Base64 } from "./hash.js";
+import { readReplayDetails, toMatchDetails } from "./replay-details.js";
 import type { StateFile, UploadState } from "./state.js";
 import { isAccepted, type Uploader } from "./uploader.js";
 
@@ -57,8 +58,12 @@ export interface FileHandlerOptions {
     uploader: Uploader;
     settleMs?: number;
     onLog?: (message: string) => void;
-    /** Called when a file begins uploading, so the UI can show it in flight. */
-    onUploadStart?: (name: string) => void;
+    /**
+     * Called when a file begins uploading, so the UI can show it in flight. The
+     * entry already has `details` (map, players) when the replay could be parsed,
+     * so the UI does not have to wait for the upload to finish to show them.
+     */
+    onUploadStart?: (entry: UploadState) => void;
 }
 
 const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
@@ -145,16 +150,21 @@ export class FileHandler {
             return { kind: "skipped", reason: "already-uploaded", name, archivedTo };
         }
 
+        // The file is already open and validated, so reading the match out of it
+        // costs no extra I/O.
+        const details = readReplayDetails(absPath);
+
         const entry = this.options.state.add({
             name,
             sha256,
             seen_at: new Date().toISOString(),
             ts: stats.mtime.toISOString(),
             is_uploaded: false,
+            ...(details === null ? {} : { details: toMatchDetails(details) }),
         });
         this.filesDone.set(sha256, false);
 
-        this.options.onUploadStart?.(name);
+        this.options.onUploadStart?.(entry);
 
         let result;
         try {

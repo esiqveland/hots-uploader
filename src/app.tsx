@@ -127,6 +127,7 @@ const MainWindow = () => {
                     onClose={() => setIsPreferencesOpen(false)}
                     unlinkedCount={uploader.unlinkedCount}
                     backfill={uploader.backfill}
+                    toon={uploader.toon}
                 />
             )}
         </AdwApplicationWindow>

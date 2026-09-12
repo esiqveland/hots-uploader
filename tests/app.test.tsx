@@ -53,7 +53,7 @@ describe("ReplayList", () => {
     it("shows the upload time in day-first format", async () => {
         await render(<ReplayList onShowHistory={() => {}} onOpenMatch={() => {}} entries={[entry("game.StormReplay")]} />);
 
-        expect(await screen.findByText(/^Uploaded 12\.11\.2024/)).toBeDefined();
+        expect(await screen.findByText(/^12\.11\.2024/)).toBeDefined();
     });
 
     it("shows the failure reason instead of a time when an upload failed", async () => {
@@ -281,5 +281,162 @@ describe("match links", () => {
                 name: "View Match",
             }),
         ).toBeDefined();
+    });
+});
+
+describe("match details in a row", () => {
+    it("titles the row with the map once the replay has been read", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[entry("2026-09-12 00.30.22 Sky Temple.StormReplay", { map: "Sky Temple" })]}
+            />,
+        );
+
+        expect(await screen.findByText("Sky Temple")).toBeDefined();
+    });
+
+    it("falls back to the filename when the replay has not been read", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[entry("2026-09-12 00.30.22 Sky Temple.StormReplay")]}
+            />,
+        );
+
+        expect(
+            await screen.findByText("2026-09-12 00.30.22 Sky Temple.StormReplay"),
+        ).toBeDefined();
+    });
+
+    it("shows your hero alongside the time", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[entry("g.StormReplay", { map: "Sky Temple", hero: "Chen" })]}
+            />,
+        );
+
+        expect(await screen.findByText(/^Chen · /)).toBeDefined();
+    });
+
+    it("shows the result as its own badge, not as subtitle text", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[
+                    entry("win.StormReplay", { map: "Sky Temple", hero: "Chen", outcome: "win" }),
+                    entry("loss.StormReplay", { map: "Braxis", hero: "Sonya", outcome: "loss" }),
+                ]}
+            />,
+        );
+
+        expect(await screen.findByText("Victory")).toBeDefined();
+        expect(await screen.findByText("Defeat")).toBeDefined();
+        // The subtitle keeps the hero and time only.
+        expect(await screen.findByText(/^Chen · /)).toBeDefined();
+    });
+
+    it("shows no result badge when the player id could not be worked out", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[entry("g.StormReplay", { map: "Sky Temple", hero: "Chen" })]}
+            />,
+        );
+
+        expect(screen.queryByText("Victory")).toBeNull();
+        expect(screen.queryByText("Defeat")).toBeNull();
+    });
+
+    it("omits the result when the player id could not be worked out", async () => {
+        await render(
+            <ReplayList
+                onShowHistory={() => {}}
+                onOpenMatch={() => {}}
+                entries={[entry("g.StormReplay", { map: "Sky Temple" })]}
+            />,
+        );
+
+        expect(await screen.findByText(/^12\.11\.2024/)).toBeDefined();
+    });
+});
+
+describe("upload status badge", () => {
+    const rows = (entries: ReplayEntry[]) => (
+        <ReplayList onShowHistory={() => {}} onOpenMatch={() => {}} entries={entries} />
+    );
+
+    // A successful upload is the normal case and needs no badge of its own.
+    it("shows nothing for a successful upload", async () => {
+        await render(rows([entry("g.StormReplay", { map: "Sky Temple", outcome: "win" })]));
+
+        expect(await screen.findByText("Victory")).toBeDefined();
+        expect(screen.queryByText("Uploaded")).toBeNull();
+    });
+
+    it("shows a badge while an upload is in flight", async () => {
+        await render(rows([entry("g.StormReplay", { status: "uploading" })]));
+
+        expect(await screen.findByText("Uploading")).toBeDefined();
+    });
+
+    it("shows a badge when the upload failed", async () => {
+        await render(rows([entry("g.StormReplay", { status: "failed", detail: "status=500" })]));
+
+        expect(await screen.findByText("Failed")).toBeDefined();
+    });
+
+    it("shows a badge when Heroes Profile rejected the replay", async () => {
+        await render(rows([entry("g.StormReplay", { status: "rejected", detail: "AiDetected" })]));
+
+        expect(await screen.findByText("Against AI")).toBeDefined();
+    });
+
+    it("puts the upload badge before the result", async () => {
+        await render(
+            rows([
+                entry("g.StormReplay", { status: "failed", detail: "boom", outcome: "loss" }),
+            ]),
+        );
+
+        // The status badge is a box (it can hold a spinner), so compare the box
+        // itself against the outcome label within the row's suffix.
+        const statusBadge = (await screen.findByText("Failed")).getParent();
+        const defeat = await screen.findByText("Defeat");
+        const suffix = defeat.getParent();
+        const order: unknown[] = [];
+        for (let child = suffix?.getFirstChild(); child; child = child.getNextSibling()) {
+            order.push(child);
+        }
+        expect(order).toContain(statusBadge);
+        expect(order.indexOf(statusBadge)).toBeLessThan(order.indexOf(defeat));
+    });
+
+    it("spins inside the badge while an upload is in flight", async () => {
+        await render(rows([entry("g.StormReplay", { status: "uploading" })]));
+
+        const badge = (await screen.findByText("Uploading")).getParent();
+        const kinds: string[] = [];
+        for (let child = badge?.getFirstChild(); child; child = child.getNextSibling()) {
+            kinds.push(child.constructor.name);
+        }
+        expect(kinds).toContain("Spinner");
+    });
+
+    it("has no spinner in the failed badge", async () => {
+        await render(rows([entry("g.StormReplay", { status: "failed", detail: "boom" })]));
+
+        const badge = (await screen.findByText("Failed")).getParent();
+        const kinds: string[] = [];
+        for (let child = badge?.getFirstChild(); child; child = child.getNextSibling()) {
+            kinds.push(child.constructor.name);
+        }
+        expect(kinds).not.toContain("Spinner");
     });
 });
