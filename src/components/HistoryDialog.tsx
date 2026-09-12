@@ -1,6 +1,13 @@
 import * as Adw from "@gtkx/gi/adw";
 import * as Gtk from "@gtkx/gi/gtk";
-import { AdwHeaderBar, AdwToolbarView, AdwWindow } from "@gtkx/jsx/adw";
+import {
+    AdwHeaderBar,
+    AdwToolbarView,
+    AdwViewStack,
+    AdwViewStackPage,
+    AdwViewSwitcher,
+    AdwWindow,
+} from "@gtkx/jsx/adw";
 import {
     GtkListView,
     GtkNoSelection,
@@ -9,8 +16,9 @@ import {
     GtkStringList,
 } from "@gtkx/jsx/gtk";
 import { useParentWindow } from "@gtkx/react";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { ReplayEntry } from "../hooks/use-uploader.js";
+import { HeroStatsList } from "./HeroStatsList.js";
 import { groupBySeason, type HistoryRow } from "../lib/history-sections.js";
 import {
     MATCH_BUTTON_CLASSES,
@@ -70,6 +78,9 @@ export interface HistoryDialogProps {
  */
 export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogProps) => {
     const parent = useParentWindow();
+    // AdwViewSwitcher needs the live ViewStack instance, not the JSX that
+    // creates it, so it's threaded through state set by AdwViewStack's ref.
+    const [stack, setStack] = useState<Adw.ViewStack | null>(null);
     // onBind runs outside React's render, so it reads the latest entries here
     // rather than closing over the ones from the render that created it.
     const entriesRef = useRef(entries);
@@ -249,28 +260,48 @@ export const HistoryDialog = ({ entries, onClose, onOpenMatch }: HistoryDialogPr
                 return true;
             }}
         >
-            <AdwToolbarView topBar={<AdwHeaderBar />}>
-                <GtkScrolledWindow
-                    hscrollbarPolicy={Gtk.PolicyType.NEVER}
-                    vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
-                    vexpand={true}
-                >
-                    <GtkListView
-                        showSeparators={true}
-                        model={
-                            <GtkNoSelection
-                                model={<GtkStringList strings={positions} />}
-                            />
-                        }
-                        factory={
-                            <GtkSignalListItemFactory
-                                onSetup={setup}
-                                onBind={bind}
-                                onTeardown={teardown}
-                            />
+            <AdwToolbarView
+                topBar={
+                    <AdwHeaderBar
+                        titleWidget={
+                            stack === null ? undefined : (
+                                <AdwViewSwitcher
+                                    stack={stack}
+                                    policy={Adw.ViewSwitcherPolicy.WIDE}
+                                />
+                            )
                         }
                     />
-                </GtkScrolledWindow>
+                }
+            >
+                <AdwViewStack ref={setStack}>
+                    <AdwViewStackPage name="history" title="History">
+                        <GtkScrolledWindow
+                            hscrollbarPolicy={Gtk.PolicyType.NEVER}
+                            vscrollbarPolicy={Gtk.PolicyType.AUTOMATIC}
+                            vexpand={true}
+                        >
+                            <GtkListView
+                                showSeparators={true}
+                                model={
+                                    <GtkNoSelection
+                                        model={<GtkStringList strings={positions} />}
+                                    />
+                                }
+                                factory={
+                                    <GtkSignalListItemFactory
+                                        onSetup={setup}
+                                        onBind={bind}
+                                        onTeardown={teardown}
+                                    />
+                                }
+                            />
+                        </GtkScrolledWindow>
+                    </AdwViewStackPage>
+                    <AdwViewStackPage name="heroes" title="By Hero">
+                        <HeroStatsList entries={entries} />
+                    </AdwViewStackPage>
+                </AdwViewStack>
             </AdwToolbarView>
         </AdwWindow>
     );
