@@ -9,6 +9,10 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # The default GITHUB_TOKEN is read-only for contents unless granted here, which
+    # softprops/action-gh-release needs to create the release and upload the asset.
+    permissions:
+      contents: write
     # Ubuntu's own apt packages are far behind what gtkx codegen needs: noble ships
     # GTK4 4.14 and libadwaita 1.5, well under gtkx's floor of GTK4 >=4.20 and
     # Adwaita >=1.8 (confirmed against packages.ubuntu.com). codegen runs directly on
