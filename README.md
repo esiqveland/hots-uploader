@@ -215,3 +215,24 @@ Two things are deliberately **not** read:
 Which player is you comes from your toon id: the *Your player ID* setting when
 given, otherwise the id in the replay folder path, otherwise the player who
 appears in the most replays.
+
+### Guessing the season
+
+Neither the replay nor the Heroes Profile API says which ranked season a match
+belongs to, so `src/lib/seasons.ts` works it out from the played-at timestamp alone.
+Every confirmed season so far has run exactly 4 calendar months, starting the 2nd of
+February, June or October — a table of confirmed boundaries (sourced from
+[Nexus Compendium](https://nexuscompendium.com/ranked)) covers the seasons already
+played, and anything after the last confirmed one is projected forward using that
+same cadence. If Blizzard ever breaks the pattern, only the current, projected
+season is wrong; the confirmed table is unaffected either way.
+
+| Season | Start | End | Length |
+| --- | --- | --- | --- |
+| 2025 Season 1 | 2025-02-02 | 2025-06-02 | 4 months (~17 weeks) |
+| 2025 Season 2 | 2025-06-02 | 2025-10-02 | 4 months (~17 weeks) |
+| 2025 Season 3 | 2025-10-02 | 2026-02-02 | 4 months (~17 weeks) |
+| 2026 Season 1 | 2026-02-02 | 2026-06-02 | 4 months (~17 weeks) |
+
+Dates are UTC and the end is exclusive. `2026 Season 2` onward isn't in the table —
+those boundaries are projected from the same cadence rather than confirmed.
