@@ -21,6 +21,30 @@ export default defineConfig({
             "Replays are deduplicated by content, so restarting the app or re-scanning a folder "
             + "never uploads the same match twice, and failed uploads are retried with backoff.",
         ],
-        categories: ["Game", "Utility"],
+        // A desktop entry may only have one freedesktop.org main category; "Game" and
+        // "Utility" together fail desktop-file-validate.
+        categories: ["Game"],
+        // AppStream wants a developer id in reverse-DNS form, matching the applicationId's
+        // vendor prefix, not a bare username.
+        developer: { id: "com.github.esiqveland", name: "Eivind Siqveland Larsen", email: "eivind@siqve.land" },
+        license: "MIT",
+        homepage: "https://github.com/esiqveland/hots-uploader",
+        urls: {
+            bugtracker: "https://github.com/esiqveland/hots-uploader/issues",
+            "vcs-browser": "https://github.com/esiqveland/hots-uploader",
+        },
+        releases: [{ version: "0.1.0", date: "2026-09-13", notes: ["First installable release."] }],
+        screenshots: [
+            { file: "screenshots/main-window.png", caption: "Recent replays and season record", isDefault: true },
+            { file: "screenshots/full-history.png", caption: "Full upload history" },
+            { file: "screenshots/hero-stats.png", caption: "Win rate by hero" },
+        ],
+        screenshotBaseUrl: "https://raw.githubusercontent.com/esiqveland/hots-uploader/main/",
+        // The app uploads to Heroes Profile over HTTPS; the sandbox default has no
+        // network access. The watched replay folder needs no extra grant here — it's
+        // chosen through Gtk.FileDialog, which the portal handles on its own.
+        flatpak: {
+            finishArgs: ["--share=network"],
+        },
     },
 });

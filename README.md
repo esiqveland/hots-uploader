@@ -9,6 +9,34 @@ It is a port of [esiqveland/replayuploader](https://github.com/esiqveland/replay
 whose working parts lived in a headless Go CLI; the GTK UI there was never
 finished.
 
+## Install
+
+Grab the `.flatpak` file from [Releases](https://github.com/esiqveland/hots-uploader/releases) and install it with [Flatpak](https://flatpak.org):
+
+```bash
+flatpak install --user com.github.esiqveland.hotsreplayuploader-*.flatpak
+```
+
+It pulls `org.gnome.Platform`/`Sdk` (runtime `50`) from Flathub if you don't already have it. Run it with:
+
+```bash
+flatpak run com.github.esiqveland.hotsreplayuploader
+```
+
+No release built yet? `npm run deploy -- --target flatpak` builds one locally — see *Development* below.
+
+### Why the Flatpak polls instead of watching
+
+The replay folder is picked via a file-chooser portal, so the sandbox only ever sees it through a
+FUSE mount rather than the real filesystem — and FUSE has never supported forwarding inotify
+events for changes made outside the mount (Wine writes replays to the real path, not through the
+portal). That's a long-standing, unresolved limitation in libfuse itself, not something specific
+to this app; see [flatpak/xdg-desktop-portal#567](https://github.com/flatpak/xdg-desktop-portal/issues/567).
+A plain directory listing through the same mount does see those files, just not as an event, so
+the Flatpak build re-scans the folder every few seconds instead of relying on `fs.watch`'s inotify
+— a few seconds of latency rather than instant detection, with no extra sandbox permissions
+needed. Outside Flatpak, `fs.watch` still fires immediately, as normal.
+
 ## Screenshots
 
 | Main window | Full history | Per-hero stats |
