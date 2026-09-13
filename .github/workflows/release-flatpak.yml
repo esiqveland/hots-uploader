@@ -9,14 +9,29 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    # Ubuntu's own apt packages are far behind what gtkx codegen needs: noble ships
+    # GTK4 4.14 and libadwaita 1.5, well under gtkx's floor of GTK4 >=4.20 and
+    # Adwaita >=1.8 (confirmed against packages.ubuntu.com). codegen runs directly on
+    # this container's filesystem, introspecting whatever GTK4/Adwaita is actually
+    # installed here - it isn't satisfied by the Flatpak runtime installed below,
+    # which only matters once flatpak-builder packages the app. Fedora tracks GNOME
+    # releases closely enough to have a current-enough GTK4/Adwaita in its own repos.
+    # --privileged is required for flatpak-builder's bubblewrap sandboxing to work
+    # inside a container; see https://github.com/flatpak/flatpak-github-actions.
+    container:
+      image: fedora:latest
+      options: --privileged
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
 
-      - name: Install flatpak tooling
+      - name: Install build tooling
         run: |
-          sudo apt-get update
-          sudo apt-get install -y flatpak flatpak-builder desktop-file-utils appstream
+          dnf install -y \
+            flatpak flatpak-builder \
+            desktop-file-utils appstream \
+            gtk4-devel libadwaita-devel gobject-introspection-devel \
+            git tar xz pkgconf-pkg-config
           flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
       - name: Cache the Flatpak runtime/SDK
